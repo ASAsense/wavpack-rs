@@ -53,7 +53,7 @@ struct BuilderConfig {
     num_channels: Option<i32>,
     float_norm_exp: Option<i32>,
     block_samples: Option<i32>,
-    extra_flags: Option<i32>,
+    //extra_flags: Option<i32>,
     sample_rate: Option<i32>,
     channel_mask: Option<i32>,
     md5_checksum: Option<[u8; 16]>,
@@ -97,13 +97,14 @@ impl TryInto<WavpackConfig> for BuilderConfig {
             num_channels: self.num_channels.unwrap(),
             float_norm_exp: self.float_norm_exp.unwrap_or(0),
             block_samples: self.block_samples.unwrap_or(0),
-            extra_flags: self.extra_flags.unwrap_or(0),
+            //extra_flags: self.extra_flags.unwrap_or(0),
             sample_rate: self.sample_rate.unwrap(),
             channel_mask: self.channel_mask.unwrap(),
             md5_checksum: self.md5_checksum.unwrap_or([0; 16]),
             md5_read: self.md5_read.unwrap_or(0),
             num_tag_strings: 0,
             tag_strings: std::ptr::null::<*mut c_char>() as *mut _,
+            worker_threads: 0 // keep single threaded for now
         };
 
         Ok(result)
@@ -224,7 +225,7 @@ impl WavpackWriterBuilder {
     add_config_opt!(add_num_channels, num_channels, i32);
     add_config_opt!(add_float_norm_exp, float_norm_exp, i32);
     add_config_opt!(add_block_samples, block_samples, i32);
-    add_config_opt!(add_extra_flags, extra_flags, i32);
+    //add_config_opt!(add_extra_flags, extra_flags, i32);
     add_config_opt!(add_sample_rate, sample_rate, i32);
     add_config_opt!(add_channel_mask, channel_mask, i32);
     add_config_opt!(add_md5_checksum, md5_checksum, [u8; 16]);
