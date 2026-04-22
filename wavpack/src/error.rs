@@ -27,6 +27,10 @@ pub enum Error {
     StoreMD5SumFailed,
     #[error("WavpacAddWrapper failed")]
     AddWrapperFailed,
+    #[error("WavpackAppendTagItem failed")]
+    AppendTagFailed,
+    #[error("WavpackWriteTag failed")]
+    WriteTagFailed,
     #[error("The file is already closed")]
     AlreadyClosed,
     #[error(transparent)]

@@ -342,6 +342,74 @@ impl WavpackWriter {
         }
         Ok(())
     }
+
+    /// Queue a text APEv2 tag item for writing. Repeat for each tag, then call
+    /// [`Self::write_tags`] exactly once before [`Self::close`].
+    ///
+    /// Per WavPack's C API, tags must be appended after [`Self::flush`] and
+    /// before [`Self::close`]. Calling this before the first `flush()` has
+    /// unspecified behaviour — the method calls `flush()` internally to be safe.
+    pub fn append_text_tag(&mut self, item: &str, value: &str) -> Result<()> {
+        if !self.is_flushed {
+            self.flush()?;
+        }
+        let item_c = std::ffi::CString::new(item)?;
+        let value_bytes = value.as_bytes();
+        if value_bytes.len() > i32::MAX as usize {
+            return Err(Error::LengthTooLong);
+        }
+        let wpc = self.context.as_ptr();
+        let r = unsafe {
+            WavpackAppendTagItem(
+                wpc,
+                item_c.as_ptr(),
+                value_bytes.as_ptr() as *const c_char,
+                value_bytes.len() as c_int,
+            )
+        };
+        // WavpackAppendTagItem returns the number of items in the tag list on
+        // success, 0 on failure.
+        if r == 0 {
+            return Err(Error::AppendTagFailed);
+        }
+        Ok(())
+    }
+
+    /// Queue a binary APEv2 tag item. Same ordering rules as
+    /// [`Self::append_text_tag`].
+    pub fn append_binary_tag(&mut self, item: &str, value: &[u8]) -> Result<()> {
+        if !self.is_flushed {
+            self.flush()?;
+        }
+        let item_c = std::ffi::CString::new(item)?;
+        if value.len() > i32::MAX as usize {
+            return Err(Error::LengthTooLong);
+        }
+        let wpc = self.context.as_ptr();
+        let r = unsafe {
+            WavpackAppendBinaryTagItem(
+                wpc,
+                item_c.as_ptr(),
+                value.as_ptr() as *const c_char,
+                value.len() as c_int,
+            )
+        };
+        if r == 0 {
+            return Err(Error::AppendTagFailed);
+        }
+        Ok(())
+    }
+
+    /// Flush all queued APEv2 tag items to the end of the file. Call exactly
+    /// once after all [`Self::append_text_tag`] / [`Self::append_binary_tag`]
+    /// calls and before [`Self::close`].
+    pub fn write_tags(&mut self) -> Result<()> {
+        let wpc = self.context.as_ptr();
+        if unsafe { WavpackWriteTag(wpc) } == FALSE {
+            return Err(Error::WriteTagFailed);
+        }
+        Ok(())
+    }
 }
 
 impl Drop for WavpackWriter {
