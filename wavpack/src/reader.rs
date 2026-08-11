@@ -207,7 +207,12 @@ impl WavpackStreamReader {
     }
 
     extern "C" fn set_pos_abs(instance_ptr: *mut c_void, pos: i64) -> c_int {
-        match Self::from_ptr(instance_ptr)
+        let instance = Self::from_ptr(instance_ptr);
+        // A seek invalidates any ungetc'd byte — leaving it in place would
+        // corrupt the first read at the new position (this is how the
+        // APEv2 tag footer read used to come back garbled).
+        instance.pushed_back_byte = None;
+        match instance
             .reader
             .as_mut()
             .and_then(|reader| reader.seek(SeekFrom::Start(pos as u64)).ok())
@@ -228,7 +233,9 @@ impl WavpackStreamReader {
             _ => return -1,
         };
 
-        match Self::from_ptr(instance_ptr)
+        let instance = Self::from_ptr(instance_ptr);
+        instance.pushed_back_byte = None; // see set_pos_abs
+        match instance
             .reader
             .as_mut()
             .and_then(|reader| reader.seek(seek_mode).ok())
